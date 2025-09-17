@@ -1,20 +1,38 @@
-/**
- * @file    stm32f4_clocks.h
- * @brief   STM32F407 clock computation helpers (CMSIS-only, no HAL).
- * @version 1.1-fix
- * @license MIT
- */
+#pragma once
 
-#ifndef STM32F4_CLOCKS_H
-#define STM32F4_CLOCKS_H
+/**
+* @file stm32f4_clocks.h
+* @brief Clock computation helpers for STM32F407 and related STM32F4 devices.
+* @version 1.1-fix
+* @date 2025-09-17
+* @author Mohammad
+* @license MIT
+*
+* This header provides CMSIS-only (no HAL) inline functions for decoding and
+* computing clock frequencies of various buses and peripherals of STM32F4 devices.
+* It supports system clock (SYSCLK), AHB, APB1, APB2, timers, PLLs, SPI/I2S,
+* USART, I2C, CAN, ADC, SDIO, USB, and RNG.
+*
+* The functions directly read RCC registers and apply prescaler decoding to
+* calculate actual clock frequencies at runtime. This is useful when HAL is
+* not used or when lightweight clock access is required.
+*/
+
+// #################################################################################
 
 #include <stdint.h>
 #include "stm32f4xx.h"
 
-/* از نگارش کلاسیک فضای نام برای سازگاری با C++11/14 استفاده می‌کنیم */
-namespace stm32 { namespace clocks {
+namespace stm32 { 
+namespace clocks {
 
 /* ----------------- Helpers ----------------- */
+
+/**
+* @brief Decode AHB prescaler bits into a divider value.
+* @param hpre_bits Raw HPRE bits from RCC->CFGR.
+* @return Decoded divider value (1,2,4,...512).
+*/
 static inline uint32_t decode_ahb_prescaler(uint32_t hpre_bits)
 {
     if ((hpre_bits & 0x8u) == 0) return 1u;
@@ -31,6 +49,11 @@ static inline uint32_t decode_ahb_prescaler(uint32_t hpre_bits)
     }
 }
 
+/**
+* @brief Decode APB prescaler bits into a divider value.
+* @param ppre_bits Raw PPRE bits from RCC->CFGR.
+* @return Decoded divider value (1,2,4,8,16).
+*/
 static inline uint32_t decode_apb_prescaler(uint32_t ppre_bits)
 {
     if ((ppre_bits & 0x4u) == 0) return 1u;
@@ -43,6 +66,11 @@ static inline uint32_t decode_apb_prescaler(uint32_t ppre_bits)
     }
 }
 
+/**
+* @brief Decode PLLP bits into the actual divider.
+* @param pllp_bits Raw PLLP bits from RCC->PLLCFGR.
+* @return Decoded divider value (2,4,6,8).
+*/
 static inline uint32_t decode_pllp(uint32_t pllp_bits)
 {
     /* 00->2, 01->4, 10->6, 11->8 */
@@ -50,6 +78,11 @@ static inline uint32_t decode_pllp(uint32_t pllp_bits)
 }
 
 /* ----------------- Core PLL products ----------------- */
+
+/**
+* @brief Get system clock frequency (SYSCLK).
+* @return Frequency in Hz.
+*/
 static inline uint32_t sysclk_hz(void)
 {
     uint32_t sws = (RCC->CFGR >> 2) & 0x3u;
@@ -71,6 +104,10 @@ static inline uint32_t sysclk_hz(void)
     return 0u;
 }
 
+/**
+* @brief Get PLL VCO frequency.
+* @return Frequency in Hz.
+*/
 static inline uint32_t pll_vco_hz(void)
 {
     uint32_t pllcfgr = RCC->PLLCFGR;
@@ -82,6 +119,10 @@ static inline uint32_t pll_vco_hz(void)
     return (fin / pllm) * plln;
 }
 
+/**
+* @brief Get PLL48 frequency used for USB, SDIO, and RNG.
+* @return Frequency in Hz.
+*/
 static inline uint32_t pll48_hz(void) /* USB/SDIO/RNG */
 {
     uint32_t pllq = (RCC->PLLCFGR >> 24) & 0xFu;
@@ -90,8 +131,6 @@ static inline uint32_t pll48_hz(void) /* USB/SDIO/RNG */
     return vco / pllq;
 }
 
-/* ---------- PLLI2S (برای I2S) با گارد صحیحِ ماکرو ---------- */
-/* از ماکروهای بیت‌فیلد استفاده می‌کنیم، نه RCC->... در defined# */
 #if defined(RCC_PLLI2SCFGR_PLLI2SN) && defined(RCC_PLLI2SCFGR_PLLI2SR)
 static inline uint32_t plli2s_vco_hz(void)
 {
@@ -103,6 +142,10 @@ static inline uint32_t plli2s_vco_hz(void)
     return (fin / pllm) * n;
 }
 
+/**
+* @brief Get PLLI2S I2S clock frequency.
+* @return Frequency in Hz (0 if not available).
+*/
 static inline uint32_t plli2s_i2sclk_hz(void)
 {
     uint32_t r = (RCC->PLLI2SCFGR >> 28) & 0x7u; /* PLLI2SR */
@@ -115,6 +158,11 @@ static inline uint32_t plli2s_i2sclk_hz(void) { return 0u; }
 #endif
 
 /* ----------------- Bus clocks ----------------- */
+
+/**
+* @brief Get AHB bus clock (HCLK).
+* @return Frequency in Hz.
+*/
 static inline uint32_t hclk_hz(void)
 {
     uint32_t div = decode_ahb_prescaler((RCC->CFGR >> 4) & 0xFu);
@@ -122,6 +170,10 @@ static inline uint32_t hclk_hz(void)
     return div ? (sys / div) : 0u;
 }
 
+/**
+* @brief Get APB1 bus clock (PCLK1).
+* @return Frequency in Hz.
+*/
 static inline uint32_t pclk1_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 10) & 0x7u);
@@ -129,6 +181,10 @@ static inline uint32_t pclk1_hz(void)
     return div ? (h / div) : 0u;
 }
 
+/**
+* @brief Get APB2 bus clock (PCLK2).
+* @return Frequency in Hz.
+*/
 static inline uint32_t pclk2_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 13) & 0x7u);
@@ -137,6 +193,11 @@ static inline uint32_t pclk2_hz(void)
 }
 
 /* ----------------- Timers ----------------- */
+
+/**
+* @brief Get timer clock frequency on APB1 domain.
+* @return Frequency in Hz.
+*/
 static inline uint32_t tim_apb1_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 10) & 0x7u);
@@ -144,6 +205,10 @@ static inline uint32_t tim_apb1_hz(void)
     return (div == 1u) ? p : (p * 2u);
 }
 
+/**
+* @brief Get timer clock frequency on APB2 domain.
+* @return Frequency in Hz.
+*/
 static inline uint32_t tim_apb2_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 13) & 0x7u);
@@ -152,6 +217,12 @@ static inline uint32_t tim_apb2_hz(void)
 }
 
 /* ----------------- SPI / I2S ----------------- */
+
+/**
+* @brief Get SPI kernel clock.
+* @param spi SPI peripheral instance.
+* @return Frequency in Hz.
+*/
 static inline uint32_t spi_kernel_hz(SPI_TypeDef* spi)
 {
 #if defined(SPI1_BASE)
@@ -167,6 +238,11 @@ static inline uint32_t spi_kernel_hz(SPI_TypeDef* spi)
     return 0u;
 }
 
+/**
+* @brief Get SPI SCK output clock.
+* @param spi SPI peripheral instance.
+* @return Frequency in Hz.
+*/
 static inline uint32_t spi_sck_hz(SPI_TypeDef* spi)
 {
     if (!spi) return 0u;
@@ -176,7 +252,11 @@ static inline uint32_t spi_sck_hz(SPI_TypeDef* spi)
     return pres ? (f_in / pres) : 0u;
 }
 
-/* I2S kernel (برای SPI2/3) */
+/**
+* @brief Get I2S kernel clock for SPI2/3.
+* @param spi SPI peripheral instance.
+* @return Frequency in Hz.
+*/
 static inline uint32_t i2s_kernel_hz(SPI_TypeDef* spi)
 {
 #if defined(SPI_I2SCFGR_I2SMOD)
@@ -192,6 +272,12 @@ static inline uint32_t i2s_kernel_hz(SPI_TypeDef* spi)
 }
 
 /* ----------------- USART / I2C / CAN ----------------- */
+
+/**
+* @brief Get USART kernel clock.
+* @param u USART peripheral instance.
+* @return Frequency in Hz.
+*/
 static inline uint32_t usart_kernel_hz(USART_TypeDef* u)
 {
 #if defined(USART1_BASE)
@@ -222,6 +308,11 @@ static inline uint32_t usart_kernel_hz(USART_TypeDef* u)
     return 0u;
 }
 
+/**
+* @brief Get I2C kernel clock.
+* @param i I2C peripheral instance.
+* @return Frequency in Hz.
+*/
 static inline uint32_t i2c_kernel_hz(I2C_TypeDef* i)
 {
 #if defined(I2C1_BASE)
@@ -237,6 +328,11 @@ static inline uint32_t i2c_kernel_hz(I2C_TypeDef* i)
     return 0u;
 }
 
+/**
+* @brief Get CAN kernel clock.
+* @param c CAN peripheral instance.
+* @return Frequency in Hz.
+*/
 static inline uint32_t can_kernel_hz(CAN_TypeDef* c)
 {
 #if defined(CAN1_BASE)
@@ -250,6 +346,11 @@ static inline uint32_t can_kernel_hz(CAN_TypeDef* c)
 }
 
 /* ----------------- ADC / SDIO / USB / RNG ----------------- */
+
+/**
+* @brief Get ADC common clock.
+* @return Frequency in Hz.
+*/
 static inline uint32_t adc_common_hz(void)
 {
 #if defined(ADC) && defined(ADC_CCR_ADCPRE)
@@ -262,6 +363,10 @@ static inline uint32_t adc_common_hz(void)
 #endif
 }
 
+/**
+* @brief Get SDIO clock frequency.
+* @return Frequency in Hz.
+*/
 static inline uint32_t sdio_clk_hz(void)
 {
 #if defined(SDIO_BASE)
@@ -271,6 +376,10 @@ static inline uint32_t sdio_clk_hz(void)
 #endif
 }
 
+/**
+* @brief Get USB FS clock frequency.
+* @return Frequency in Hz.
+*/
 static inline uint32_t usb_fs_clk_hz(void)
 {
 #if defined(USB_OTG_FS)
@@ -280,6 +389,10 @@ static inline uint32_t usb_fs_clk_hz(void)
 #endif
 }
 
+/**
+* @brief Get RNG clock frequency.
+* @return Frequency in Hz.
+*/
 static inline uint32_t rng_clk_hz(void)
 {
 #if defined(RNG)
@@ -290,19 +403,31 @@ static inline uint32_t rng_clk_hz(void)
 }
 
 /* ----------------- Snapshot ----------------- */
+
+/**
+* @struct ClockSnapshot
+* @brief Snapshot of all major clock domains.
+*
+* Provides a convenient structure containing system, bus, peripheral,
+* and special clock frequencies.
+*/
 struct ClockSnapshot {
-    uint32_t sysclk, hclk, pclk1, pclk2;
-    uint32_t tim_apb1, tim_apb2;
-    uint32_t pll48;
-    uint32_t spi1_kernel, spi2_kernel, spi3_kernel;
-    uint32_t usart1_kernel, usart2_kernel, usart3_kernel, uart4_kernel, uart5_kernel, usart6_kernel;
-    uint32_t i2c1_kernel, i2c2_kernel, i2c3_kernel;
-    uint32_t can1_kernel, can2_kernel;
-    uint32_t adc_common;
-    uint32_t sdio, usbfs, rng;
-    uint32_t i2sclk;
+    uint32_t sysclk, hclk, pclk1, pclk2;    /**< System and bus clocks */
+    uint32_t tim_apb1, tim_apb2;            /**< Timer clocks */
+    uint32_t pll48;                         /**< PLL48 domain */
+    uint32_t spi1_kernel, spi2_kernel, spi3_kernel; /**< SPI kernel clocks */
+    uint32_t usart1_kernel, usart2_kernel, usart3_kernel, uart4_kernel, uart5_kernel, usart6_kernel; /**< USART/UART kernel clocks */
+    uint32_t i2c1_kernel, i2c2_kernel, i2c3_kernel; /**< I2C kernel clocks */
+    uint32_t can1_kernel, can2_kernel;      /**< CAN kernel clocks */
+    uint32_t adc_common;                    /**< ADC common clock */
+    uint32_t sdio, usbfs, rng;              /**< SDIO, USB FS, RNG clocks */
+    uint32_t i2sclk;                        /**< I2S clock */
 };
 
+/**
+* @brief Take a snapshot of current clock configuration.
+* @return ClockSnapshot structure with all current frequencies.
+*/
 static inline ClockSnapshot snapshot(void)
 {
     ClockSnapshot s;
@@ -393,4 +518,4 @@ static inline ClockSnapshot snapshot(void)
 
 }} /* namespace stm32::clocks */
 
-#endif /* STM32F4_CLOCKS_H */
+
