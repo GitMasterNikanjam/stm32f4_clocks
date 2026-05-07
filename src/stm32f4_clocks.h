@@ -33,7 +33,7 @@ namespace clocks {
 * @param hpre_bits Raw HPRE bits from RCC->CFGR.
 * @return Decoded divider value (1,2,4,...512).
 */
-constexpr uint32_t decode_ahb_prescaler(uint32_t hpre_bits)
+static inline uint32_t decode_ahb_prescaler(uint32_t hpre_bits)
 {
     if ((hpre_bits & 0x8u) == 0) return 1u;
     switch (hpre_bits & 0xFu) {
@@ -54,7 +54,7 @@ constexpr uint32_t decode_ahb_prescaler(uint32_t hpre_bits)
 * @param ppre_bits Raw PPRE bits from RCC->CFGR.
 * @return Decoded divider value (1,2,4,8,16).
 */
-constexpr uint32_t decode_apb_prescaler(uint32_t ppre_bits)
+static inline uint32_t decode_apb_prescaler(uint32_t ppre_bits)
 {
     if ((ppre_bits & 0x4u) == 0) return 1u;
     switch (ppre_bits & 0x7u) {
@@ -71,7 +71,7 @@ constexpr uint32_t decode_apb_prescaler(uint32_t ppre_bits)
 * @param pllp_bits Raw PLLP bits from RCC->PLLCFGR.
 * @return Decoded divider value (2,4,6,8).
 */
-constexpr uint32_t decode_pllp(uint32_t pllp_bits)
+static inline uint32_t decode_pllp(uint32_t pllp_bits)
 {
     /* 00->2, 01->4, 10->6, 11->8 */
     return 2u * (pllp_bits + 1u);
@@ -83,7 +83,7 @@ constexpr uint32_t decode_pllp(uint32_t pllp_bits)
 * @brief Get system clock frequency (SYSCLK).
 * @return Frequency in Hz.
 */
-constexpr uint32_t sysclk_hz(void)
+static inline uint32_t sysclk_hz(void)
 {
     uint32_t sws = (RCC->CFGR >> 2) & 0x3u;
     if (sws == 0u)  return (uint32_t)HSI_VALUE;
@@ -108,7 +108,7 @@ constexpr uint32_t sysclk_hz(void)
 * @brief Get PLL VCO frequency.
 * @return Frequency in Hz.
 */
-constexpr uint32_t pll_vco_hz(void)
+static inline uint32_t pll_vco_hz(void)
 {
     uint32_t pllcfgr = RCC->PLLCFGR;
     uint32_t pllsrc   = (pllcfgr >> 22) & 0x1u;
@@ -123,7 +123,7 @@ constexpr uint32_t pll_vco_hz(void)
 * @brief Get PLL48 frequency used for USB, SDIO, and RNG.
 * @return Frequency in Hz.
 */
-constexpr uint32_t pll48_hz(void) /* USB/SDIO/RNG */
+static inline uint32_t pll48_hz(void) /* USB/SDIO/RNG */
 {
     uint32_t pllq = (RCC->PLLCFGR >> 24) & 0xFu;
     uint32_t vco  = pll_vco_hz();
@@ -132,7 +132,7 @@ constexpr uint32_t pll48_hz(void) /* USB/SDIO/RNG */
 }
 
 #if defined(RCC_PLLI2SCFGR_PLLI2SN) && defined(RCC_PLLI2SCFGR_PLLI2SR)
-constexpr uint32_t plli2s_vco_hz(void)
+static inline uint32_t plli2s_vco_hz(void)
 {
     uint32_t pllm = (RCC->PLLCFGR & 0x3Fu);
     if (pllm == 0u) return 0u;
@@ -146,7 +146,7 @@ constexpr uint32_t plli2s_vco_hz(void)
 * @brief Get PLLI2S I2S clock frequency.
 * @return Frequency in Hz (0 if not available).
 */
-constexpr uint32_t plli2s_i2sclk_hz(void)
+static inline uint32_t plli2s_i2sclk_hz(void)
 {
     uint32_t r = (RCC->PLLI2SCFGR >> 28) & 0x7u; /* PLLI2SR */
     uint32_t v = plli2s_vco_hz();
@@ -154,7 +154,7 @@ constexpr uint32_t plli2s_i2sclk_hz(void)
     return v / r;
 }
 #else
-constexpr uint32_t plli2s_i2sclk_hz(void) { return 0u; }
+static inline uint32_t plli2s_i2sclk_hz(void) { return 0u; }
 #endif
 
 /* ----------------- Bus clocks ----------------- */
@@ -163,7 +163,7 @@ constexpr uint32_t plli2s_i2sclk_hz(void) { return 0u; }
 * @brief Get AHB bus clock (HCLK).
 * @return Frequency in Hz.
 */
-constexpr uint32_t hclk_hz(void)
+static inline uint32_t hclk_hz(void)
 {
     uint32_t div = decode_ahb_prescaler((RCC->CFGR >> 4) & 0xFu);
     uint32_t sys = sysclk_hz();
@@ -174,7 +174,7 @@ constexpr uint32_t hclk_hz(void)
 * @brief Get APB1 bus clock (PCLK1).
 * @return Frequency in Hz.
 */
-constexpr uint32_t pclk1_hz(void)
+static inline uint32_t pclk1_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 10) & 0x7u);
     uint32_t h   = hclk_hz();
@@ -185,7 +185,7 @@ constexpr uint32_t pclk1_hz(void)
 * @brief Get APB2 bus clock (PCLK2).
 * @return Frequency in Hz.
 */
-constexpr uint32_t pclk2_hz(void)
+static inline uint32_t pclk2_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 13) & 0x7u);
     uint32_t h   = hclk_hz();
@@ -198,7 +198,7 @@ constexpr uint32_t pclk2_hz(void)
 * @brief Get timer clock frequency on APB1 domain.
 * @return Frequency in Hz.
 */
-constexpr uint32_t tim_apb1_hz(void)
+static inline uint32_t tim_apb1_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 10) & 0x7u);
     uint32_t p   = pclk1_hz();
@@ -209,7 +209,7 @@ constexpr uint32_t tim_apb1_hz(void)
 * @brief Get timer clock frequency on APB2 domain.
 * @return Frequency in Hz.
 */
-constexpr uint32_t tim_apb2_hz(void)
+static inline uint32_t tim_apb2_hz(void)
 {
     uint32_t div = decode_apb_prescaler((RCC->CFGR >> 13) & 0x7u);
     uint32_t p   = pclk2_hz();
@@ -223,7 +223,7 @@ constexpr uint32_t tim_apb2_hz(void)
 * @param spi SPI peripheral instance.
 * @return Frequency in Hz.
 */
-constexpr uint32_t spi_kernel_hz(SPI_TypeDef* spi)
+static inline uint32_t spi_kernel_hz(SPI_TypeDef* spi)
 {
 #if defined(SPI1_BASE)
     if (spi == SPI1) return pclk2_hz();
@@ -243,7 +243,7 @@ constexpr uint32_t spi_kernel_hz(SPI_TypeDef* spi)
 * @param spi SPI peripheral instance.
 * @return Frequency in Hz.
 */
-constexpr uint32_t spi_sck_hz(SPI_TypeDef* spi)
+static inline uint32_t spi_sck_hz(SPI_TypeDef* spi)
 {
     if (!spi) return 0u;
     uint32_t f_in = spi_kernel_hz(spi);
@@ -257,7 +257,7 @@ constexpr uint32_t spi_sck_hz(SPI_TypeDef* spi)
 * @param spi SPI peripheral instance.
 * @return Frequency in Hz.
 */
-constexpr uint32_t i2s_kernel_hz(SPI_TypeDef* spi)
+static inline uint32_t i2s_kernel_hz(SPI_TypeDef* spi)
 {
 #if defined(SPI_I2SCFGR_I2SMOD)
 # if defined(SPI2_BASE)
@@ -278,7 +278,7 @@ constexpr uint32_t i2s_kernel_hz(SPI_TypeDef* spi)
 * @param u USART peripheral instance.
 * @return Frequency in Hz.
 */
-constexpr uint32_t usart_kernel_hz(USART_TypeDef* u)
+static inline uint32_t usart_kernel_hz(USART_TypeDef* u)
 {
 #if defined(USART1_BASE)
     if (u == USART1) return pclk2_hz();
@@ -313,7 +313,7 @@ constexpr uint32_t usart_kernel_hz(USART_TypeDef* u)
 * @param i I2C peripheral instance.
 * @return Frequency in Hz.
 */
-constexpr uint32_t i2c_kernel_hz(I2C_TypeDef* i)
+static inline uint32_t i2c_kernel_hz(I2C_TypeDef* i)
 {
 #if defined(I2C1_BASE)
     if (i == I2C1) return pclk1_hz();
@@ -333,7 +333,7 @@ constexpr uint32_t i2c_kernel_hz(I2C_TypeDef* i)
 * @param c CAN peripheral instance.
 * @return Frequency in Hz.
 */
-constexpr uint32_t can_kernel_hz(CAN_TypeDef* c)
+static inline uint32_t can_kernel_hz(CAN_TypeDef* c)
 {
 #if defined(CAN1_BASE)
     if (c == CAN1) return pclk1_hz();
@@ -351,7 +351,7 @@ constexpr uint32_t can_kernel_hz(CAN_TypeDef* c)
 * @brief Get ADC common clock.
 * @return Frequency in Hz.
 */
-constexpr uint32_t adc_common_hz(void)
+static inline uint32_t adc_common_hz(void)
 {
 #if defined(ADC) && defined(ADC_CCR_ADCPRE)
     uint32_t p2  = pclk2_hz();
@@ -367,7 +367,7 @@ constexpr uint32_t adc_common_hz(void)
 * @brief Get SDIO clock frequency.
 * @return Frequency in Hz.
 */
-constexpr uint32_t sdio_clk_hz(void)
+static inline uint32_t sdio_clk_hz(void)
 {
 #if defined(SDIO_BASE)
     return pll48_hz();
@@ -380,7 +380,7 @@ constexpr uint32_t sdio_clk_hz(void)
 * @brief Get USB FS clock frequency.
 * @return Frequency in Hz.
 */
-constexpr uint32_t usb_fs_clk_hz(void)
+static inline uint32_t usb_fs_clk_hz(void)
 {
 #if defined(USB_OTG_FS)
     return pll48_hz();
@@ -393,7 +393,7 @@ constexpr uint32_t usb_fs_clk_hz(void)
 * @brief Get RNG clock frequency.
 * @return Frequency in Hz.
 */
-constexpr uint32_t rng_clk_hz(void)
+static inline uint32_t rng_clk_hz(void)
 {
 #if defined(RNG)
     return pll48_hz();
@@ -428,7 +428,7 @@ struct ClockSnapshot {
 * @brief Take a snapshot of current clock configuration.
 * @return ClockSnapshot structure with all current frequencies.
 */
-constexpr ClockSnapshot snapshot(void)
+static inline ClockSnapshot snapshot(void)
 {
     ClockSnapshot s;
     s.sysclk   = sysclk_hz();
