@@ -238,6 +238,11 @@ static inline uint32_t spi_kernel_hz(SPI_TypeDef* spi)
     return 0u;
 }
 
+/* Named wrappers shared with the STM32H7 clock API. */
+static inline uint32_t spi1_kernel_hz(void) { return spi_kernel_hz(SPI1); }
+static inline uint32_t spi2_kernel_hz(void) { return spi_kernel_hz(SPI2); }
+static inline uint32_t spi3_kernel_hz(void) { return spi_kernel_hz(SPI3); }
+
 /**
 * @brief Get SPI SCK output clock.
 * @param spi SPI peripheral instance.
@@ -308,6 +313,14 @@ static inline uint32_t usart_kernel_hz(USART_TypeDef* u)
     return 0u;
 }
 
+/* Named wrappers shared with the STM32H7 clock API. */
+static inline uint32_t usart1_kernel_hz(void) { return usart_kernel_hz(USART1); }
+static inline uint32_t usart2_kernel_hz(void) { return usart_kernel_hz(USART2); }
+static inline uint32_t usart3_kernel_hz(void) { return usart_kernel_hz(USART3); }
+static inline uint32_t uart4_kernel_hz(void)  { return usart_kernel_hz(UART4); }
+static inline uint32_t uart5_kernel_hz(void)  { return usart_kernel_hz(UART5); }
+static inline uint32_t usart6_kernel_hz(void) { return usart_kernel_hz(USART6); }
+
 /**
 * @brief Get I2C kernel clock.
 * @param i I2C peripheral instance.
@@ -327,6 +340,11 @@ static inline uint32_t i2c_kernel_hz(I2C_TypeDef* i)
     (void)i;
     return 0u;
 }
+
+/* Named wrappers shared with the STM32H7 clock API. */
+static inline uint32_t i2c1_kernel_hz(void) { return i2c_kernel_hz(I2C1); }
+static inline uint32_t i2c2_kernel_hz(void) { return i2c_kernel_hz(I2C2); }
+static inline uint32_t i2c3_kernel_hz(void) { return i2c_kernel_hz(I2C3); }
 
 /**
 * @brief Get CAN kernel clock.
@@ -517,5 +535,4 @@ static inline ClockSnapshot snapshot(void)
 }
 
 }} /* namespace stm32::clocks */
-
 
